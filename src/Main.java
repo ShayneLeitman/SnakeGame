@@ -10,7 +10,7 @@ public class Main extends JFrame{
 	
 	private void initGUI() {
 		
-        add(new Screen());
+        add(new Menu());
         
         setResizable(false);
         pack();

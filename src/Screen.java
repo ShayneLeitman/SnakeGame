@@ -20,12 +20,12 @@ public class Screen extends JPanel implements ActionListener {
 	private final int totalPanels = 2500;
 	
 	//Snake Info:
-	private int snakeSize = 2; //Initial Snake Size (Maybe increase...or make customizable in a new panel)
+	private int snakeSize = 7; //Initial Snake Size (Maybe increase...or make customizable in a new panel)
 	private final int snakeX[] = new int[totalPanels];
 	private final int snakeY[] = new int[totalPanels];
 
 	//Food Info:
-	private int numFood = 1; //Number of food available. Note: Maybe add this later. Use for loop to create them! 
+	private int numFood = 2; //Number of food available. Note: Maybe add this later. Use for loop to create them! 
 	private final int foodX[] = new int[numFood];
 	private final int foodY[] = new int[numFood];
 	private Random rand;
@@ -39,6 +39,7 @@ public class Screen extends JPanel implements ActionListener {
 	//General Game Info:
 	boolean gameInProgress = false; //Start with this value as off/false.
 	private Timer gameTimer;
+	private boolean edgeKills = false; //This is the option to have bounds/edges kill the snake
 	
 	public Screen() {
 		
@@ -70,7 +71,8 @@ public class Screen extends JPanel implements ActionListener {
 		for (int i = 0; i < numFood; i++) {
 			changeFood(i);
 		}
-		
+		//Start the game with the snake going up (change later maybe)
+		up = true;
 		gameInProgress = true;
 		
 		//Begin the timer so that movement and game is set in motion!
@@ -79,24 +81,97 @@ public class Screen extends JPanel implements ActionListener {
 		
 	}
 	
-	private boolean checkNewFoodPanel(int i) {
+	private boolean checkNewFoodPanel(int i, int x, int y) {
+		//First, check if the new food coordinates interfere with the snake!
 		for (int j = 0; j < snakeSize; j++) {
-			if (foodX[i] == snakeX[j] && foodY[i] == snakeY[j]) {
+			if (x == snakeX[j] && y == snakeY[j]) {
 				return false;
 			}
 		}
+		//Second, check if the new food coordinates interfere with the other food!
+		for (int q = 0; q < numFood; q++) {
+			if (q != i && x == foodX[q] && y == foodY[q]) {
+				return false;
+			}
+		}
+		
 		return true;
 	}
 	
 	private void changeFood(int j) {
-		foodX[j] = (int)(Math.random() * 50) * 10;
-		foodY[j] = (int)(Math.random() * 50) * 10;
-		while(!checkNewFoodPanel(j)) {
-			foodX[j] = (int)(Math.random() * 50) * 10;
-			foodY[j] = (int)(Math.random() * 50) * 10;
+		//Use tmp variables instead of actually changing real coordinates for food piece
+		int tmp1 = (int)(Math.random() * 50) * 10;
+		int tmp2 = (int)(Math.random() * 50) * 10;
+		while(!checkNewFoodPanel(j, tmp1, tmp2)) {
+			tmp1 = (int)(Math.random() * 50) * 10;
+			tmp2 = (int)(Math.random() * 50) * 10;
+		}
+		//Once these tmp variables have been verified, then switch the food coordinates!
+		foodX[j] = tmp1;
+		foodY[j] = tmp2;
+	}
+	
+	private void checkFoodHit() {
+		for (int i = 0; i < numFood; i++) {
+			if (snakeX[0] == foodX[i] && snakeY[0] == foodY[i]) {
+				changeFood(i);
+				snakeSize++;
+				i = numFood; //This stops the loop! It is fine since food cannot be on the same panel!
+			}
 		}
 	}
 	
+	private void checkSnakeHit() {
+		for (int j = 1; j < snakeSize; j++) {
+			if (snakeX[0] == snakeX[j] && snakeY[0] == snakeY[j]) {
+				gameInProgress = false;
+			}
+		}
+		//The following code ends the game if the snake hits the screen edges/bounds: Only used when edgeKills is set to true!
+		if (edgeKills) {
+			if (snakeX[0] >= 500) {
+				gameInProgress = false;
+			} else if (snakeX[0] < 0) {
+				gameInProgress = false;
+			} else if (snakeY[0] >= 500) {
+				gameInProgress = false;
+			} else if (snakeY[0] < 0) {
+				gameInProgress = false;
+			} 
+		}
+	}
+	
+	private void move() {
+		
+		for (int i = snakeSize; i > 0; i--) {
+			snakeX[i] = snakeX[i - 1];
+			snakeY[i] = snakeY[i - 1];
+		}
+		
+		if (up) {
+			snakeY[0] -= 10;
+		} else if (down) {
+			snakeY[0] += 10;
+		} else if (left) {
+			snakeX[0] -= 10;
+		} else if (right) {
+			snakeX[0] += 10;
+		}
+		
+		//The following code lets the snake go through the bounds of one side and come out the other, if edgeKills is set to false!
+		if (!edgeKills) {
+			if (snakeY[0] >= 500) {
+				snakeY[0] = 0;
+			} else if (snakeY[0] < 0) {
+				snakeY[0] = 490;
+			} else if (snakeX[0] >= 500) {
+				snakeX[0] = 0;
+			} else if (snakeX[0] < 0) {
+				snakeX[0] = 490;
+			}
+		}
+		
+	}
 	
     @Override
     public void paintComponent(Graphics g) {
@@ -139,9 +214,9 @@ public class Screen extends JPanel implements ActionListener {
 
         if (gameInProgress) {
 
-            //checkFoodHit();
-            //checkSnakeHit();
-            //move();
+            checkFoodHit();
+            checkSnakeHit();
+            move();
         }
 
         repaint();
